@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Life</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💀</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #0b1120; color: #f8fafc; overflow-x: hidden; user-select: none; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Glass & Modal */
+        .glass-panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .modal-overlay { background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px); }
+        
+        /* Tree Layout Structure */
+        .tree-container { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
+        .tree-level { display: flex; justify-content: center; position: relative; padding-top: 30px; }
+        .tree-node-group { display: flex; flex-direction: column; align-items: center; margin: 0 15px; position: relative; }
+        .tree-partners { display: flex; flex-direction: row; align-items: center; gap: 30px; padding: 15px; position: relative; z-index: 2; }
+        
+        /* Tree Connectors */
+        .children-container { display: flex; justify-content: center; position: relative; padding-top: 30px; margin-top: 10px; }
+        .children-container::before { content: ''; position: absolute; top: 0; left: 50%; border-left: 2px solid #475569; width: 0; height: 30px; transform: translateX(-50%); }
+        .has-multiple-children::after { content: ''; position: absolute; top: 30px; left: calc(50% / var(--child-count)); right: calc(50% / var(--child-count)); border-top: 2px solid #475569; width: calc(100% - (100% / var(--child-count))); }
+        .child-wrapper { position: relative; padding-top: 30px; margin: 0 15px; display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .child-wrapper::before { content: ''; position: absolute; top: 0; left: 50%; border-left: 2px solid #475569; width: 0; height: 30px; transform: translateX(-50%); }
+
+        /* --- EXACT MATCH NODE UI --- */
+        .node-card {
+            background-color: #1e293b; /* Dark slate bg */
+            border-radius: 12px;
+            padding: 16px 20px;
+            width: 140px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+        .node-card:hover { transform: translateY(-5px); }
+        
+        .avatar-ring {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background-color: #0f172a; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            position: relative;
+            margin-bottom: 12px;
+        }
+        .normal-ring { border: 2px solid #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        .god-ring { border: 2px solid #eab308; box-shadow: 0 0 15px rgba(234, 191, 36, 0.5); }
+        .shadow-ring { border: 2px solid #a855f7; box-shadow: 0 0 15px rgba(168, 85, 247, 0.5); }
+        
+        .img-sjw { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        
+        .income-badge {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            white-space: nowrap;
+            border: 2px solid #1e293b;
+            z-index: 5;
+        }
+        .bg-inc-pos { background-color: #16a34a; color: #fff; }
+        .bg-inc-neg { background-color: #dc2626; color: #fff; }
+        .bg-inc-neu { background-color: #475569; color: #fff; }
+        
+        .name-box {
+            background-color: #0f172a;
+            border-radius: 6px;
+            width: 100%;
+            text-align: center;
+            padding: 6px 4px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #f8fafc;
+            margin-bottom: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .age-box {
+            background-color: #0f172a;
+            border-radius: 6px;
+            width: 100%;
+            text-align: center;
+            padding: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+        .dead-node { filter: grayscale(100%) opacity(0.6); }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
+        <div class="glass-panel p-8 w-[400px] text-center flex flex-col gap-4">
+            <h1 class="text-3xl font-bold text-red-500 mb-2">💀 Family Life V5</h1>
+            <p class="text-slate-400 text-sm mb-4">Ultimate Lineage Edition</p>
+            <button onclick="realLogin('Google')" class="w-full py-3 bg-white text-slate-800 font-bold rounded-lg hover:bg-gray-200 transition flex items-center justify-center gap-2">เข้าสู่ระบบด้วย Google</button>
+            <button onclick="realLogin('Facebook')" class="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">เข้าสู่ระบบด้วย Facebook</button>
+            <button onclick="realLogin('Guest')" class="w-full py-3 bg-slate-700 text-white font-bold rounded-lg hover:bg-slate-600 transition">เล่นแบบผู้เยี่ยมชม (Guest)</button>
+        </div>
+    </div>
+
+    <!-- Start / Save Load Screen -->
+    <div id="start-screen" class="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900 hidden">
+        <div class="glass-panel p-8 w-[500px] flex flex-col gap-5">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h2 class="text-2xl font-bold text-blue-400" id="user-greeting">ผู้เล่น</h2>
+                <button onclick="logout()" class="text-sm text-slate-400 hover:text-white bg-slate-800 px-3 py-1 rounded">ออกจากระบบ</button>
+            </div>
+            
+            <div id="save-slot" class="bg-slate-800 p-4 rounded-lg border border-slate-700 hidden">
+                <h3 class="text-lg font-bold text-green-400 mb-2">☁️ บันทึกการเล่นล่าสุด</h3>
+                <p id="save-info" class="text-sm text-slate-300"></p>
+                <button onclick="loadGame()" class="mt-3 w-full py-2 bg-green-600 hover:bg-green-500 text-white rounded font-bold transition">เล่นต่อ</button>
+            </div>
+
+            <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                <h3 class="text-lg font-bold text-white mb-2">✨ เริ่มต้นตระกูลใหม่</h3>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <input type="text" id="start-fam-name" placeholder="นามสกุล (เว้นว่างสุ่ม)" class="w-full p-2 bg-slate-900 border border-slate-600 rounded text-sm text-white focus:outline-none">
+                    <input type="text" id="start-char-name" placeholder="ชื่อตัวละคร (เว้นว่างสุ่ม)" class="w-full p-2 bg-slate-900 border border-slate-600 rounded text-sm text-white focus:outline-none">
+                </div>
+                <!-- ช่องรหัสลับพรางตัว -->
+                <input type="password" id="dev-code" placeholder="สำหรับผู้พัฒนา (ถ้ามี)" class="w-full p-2 mb-3 bg-slate-900 border border-slate-600 rounded text-sm text-slate-600 focus:text-white focus:outline-none focus:border-red-500">
+                <div class="flex gap-2">
+                    <button onclick="startNewGame('M')" class="flex-1 py-3 bg-blue-900 hover:bg-blue-800 text-white rounded font-bold border border-blue-700">เริ่มเป็น เพศชาย</button>
+                    <button onclick="startNewGame('F')" class="flex-1 py-3 bg-pink-900 hover:bg-pink-800 text-white rounded font-bold border border-pink-700">เริ่มเป็น เพศหญิง</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game UI -->
+    <div id="game-ui" class="hidden flex-col h-full relative">
+        <header class="bg-[#0f172a] border-b border-slate-800 p-4 flex justify-between items-center z-10 shadow-lg">
+            <div>
+                <h1 class="text-2xl font-black text-red-500 flex items-center gap-2">💀 ตระกูล <span id="ui-fam-name">...</span></h1>
+                <p class="text-xs text-blue-400 font-semibold mt-1">สถานะ: ออนไลน์ (Cloud)</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="btn-arise" onclick="openAriseModal()" class="w-10 h-10 rounded-full bg-purple-900 text-white flex items-center justify-center text-xl shadow hidden" title="จงตื่น (Arise)">👻</button>
+                <button id="btn-clone" onclick="spawnClone()" class="w-10 h-10 rounded-full bg-blue-900 text-white flex items-center justify-center text-xl shadow hidden" title="ร่างแยก">🧬</button>
+                <button onclick="openBusinessModal()" class="w-10 h-10 rounded-full bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center text-lg shadow" title="ธุรกิจ">🏢</button>
+                <button id="btn-pause" onclick="togglePause()" class="w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-400 text-white flex items-center justify-center font-bold shadow" title="หยุดเวลา">⏸</button>
+                <button onclick="saveGameToCloud()" class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center font-bold shadow" title="บันทึกเกม">💾</button>
+            </div>
+        </header>
+
+        <div class="bg-[#1e293b] px-6 py-4 flex justify-between items-center border-b border-slate-800 z-10 shadow-md">
+            <div>
+                <p class="text-slate-400 text-sm font-semibold mb-1">เงินรวมครอบครัว & ทรัพย์สิน</p>
+                <p id="ui-money" class="text-3xl font-black text-green-400 tracking-wide">$0</p>
+                <p id="ui-income" class="text-sm text-green-300 font-bold mt-1">+0/s</p>
+            </div>
+            <div class="text-right flex flex-col items-end gap-1">
+                <div class="bg-slate-900 px-4 py-2 rounded-md border border-slate-700 flex items-center gap-2 shadow-inner">
+                    <span class="text-slate-400">📅</span> <span id="ui-date" class="font-bold text-white text-lg">1/1/2020</span>
+                </div>
+                <p id="ui-inflation" class="text-xs font-bold text-red-500 mt-1">เงินเฟ้อ: +0%</p>
+            </div>
+        </div>
+
+        <main class="flex-1 overflow-auto relative p-4 hide-scrollbar bg-[#0b1120]" id="tree-canvas">
+            <div id="tree-root" class="tree-container"></div>
+        </main>
+    </div>
+
+    <!-- Event Modal -->
+    <div id="modal-event" class="fixed inset-0 modal-overlay z-40 hidden flex items-center justify-center">
+        <div class="glass-panel w-[90%] max-w-[550px] p-0 overflow-hidden flex flex-col border border-slate-700">
+            <div class="p-6 pb-4 border-b border-slate-700 flex flex-col gap-2 relative bg-slate-900">
+                <div class="absolute top-4 right-4 text-4xl" id="ev-icon">⚠️</div>
+                <h2 id="ev-title" class="text-2xl font-black text-white pr-16">เหตุการณ์</h2>
+                <div class="flex gap-2 items-center mt-2">
+                    <button class="inline-flex items-center gap-1 bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg text-sm border border-slate-600 hover:bg-blue-900 hover:border-blue-500 font-bold shadow transition" onclick="showCharStatus(GAME._currentEventCharId, null, true)">
+                        👤 <span id="ev-char">ชื่อ</span> (คลิกดูสเตตัส)
+                    </button>
+                    <div class="inline-flex items-center gap-1 bg-green-900/50 text-green-300 px-3 py-1.5 rounded-lg text-sm border border-green-800 font-bold">
+                        💵 ทุน: <span id="ev-funds">$0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 pt-4 bg-slate-900/80 flex-1 overflow-y-auto max-h-[60vh] hide-scrollbar">
+                <p id="ev-desc" class="text-slate-300 mb-6 text-sm leading-relaxed"></p>
+                <div id="ev-choices" class="flex flex-col gap-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Baby Modal -->
+    <div id="modal-baby" class="fixed inset-0 modal-overlay z-[52] hidden flex items-center justify-center">
+        <div class="glass-panel p-6 w-[400px] border-t-4 border-pink-500 bg-slate-900 shadow-2xl">
+            <h2 class="text-2xl font-bold text-pink-400 mb-2">👶 กำเนิดชีวิตใหม่!</h2>
+            <p id="baby-desc" class="text-sm text-slate-300 mb-4">คุณได้ลูก... โปรดตั้งชื่อ</p>
+            <input type="text" id="input-baby-name" class="w-full p-3 bg-slate-800 border border-pink-800 text-white rounded mb-3 text-center text-lg font-bold outline-none">
+            <div class="flex gap-2">
+                <button onclick="randomBabyName()" class="w-1/3 py-3 bg-slate-700 hover:bg-slate-600 rounded text-white font-bold transition">🎲 สุ่มชื่อ</button>
+                <button onclick="confirmBabyName()" class="w-2/3 py-3 bg-pink-700 hover:bg-pink-600 text-white font-bold rounded transition">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="modal-result" class="fixed inset-0 modal-overlay z-[55] hidden flex items-center justify-center">
+        <div class="glass-panel p-6 w-[450px] border-l-4 border-l-blue-500 bg-slate-900 shadow-2xl">
+            <h2 id="res-title" class="text-xl font-black text-white mb-2">📝 ผลลัพธ์</h2>
+            <p id="res-desc" class="text-slate-300 mb-4 text-sm font-semibold"></p>
+            <div id="res-changes" class="bg-slate-950 p-4 rounded text-left text-sm space-y-2 mb-5 hidden border border-slate-700 text-slate-200 font-bold shadow-inner"></div>
+            <button onclick="closeResultModal()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-black transition">ตกลง / ดำเนินการต่อ</button>
+        </div>
+    </div>
+
+    <!-- Status Modal (Progress Bars) -->
+    <div id="modal-status" class="fixed inset-0 modal-overlay z-[60] hidden flex items-center justify-center">
+        <div class="glass-panel p-0 w-[450px] relative overflow-hidden flex flex-col bg-slate-900 shadow-2xl">
+            <button onclick="closeStatus()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 hover:bg-red-900 w-8 h-8 rounded-full flex items-center justify-center z-10 transition">✕</button>
+            <div class="p-6 bg-slate-800 border-b border-slate-700 flex gap-5 items-center relative">
+                <div class="w-24 h-24 rounded-full border-4 border-blue-500 flex items-center justify-center text-5xl bg-slate-900 overflow-hidden shrink-0" id="stat-icon-container"></div>
+                <div class="flex-1 min-w-0">
+                    <h2 id="stat-name" class="text-2xl font-black text-white mb-1 truncate">ชื่อ</h2>
+                    <p id="stat-prefix" class="text-sm text-yellow-400 font-bold mb-2 truncate">คำนำหน้า...</p>
+                    <div class="flex flex-wrap gap-1.5 mt-1" id="stat-tags"></div>
+                </div>
+            </div>
+            <div class="p-6 bg-slate-900">
+                <div class="grid grid-cols-2 gap-4 mb-5">
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                        <div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-slate-400">❤️ สุขภาพ</span><span id="stat-hp-txt" class="text-white">100</span></div>
+                        <div class="w-full bg-slate-950 rounded-full h-2"><div id="stat-hp-bar" class="bg-red-500 h-2 rounded-full" style="width: 100%"></div></div>
+                    </div>
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                        <div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-slate-400">😊 ความสุข</span><span id="stat-hap-txt" class="text-white">100</span></div>
+                        <div class="w-full bg-slate-950 rounded-full h-2"><div id="stat-hap-bar" class="bg-yellow-400 h-2 rounded-full" style="width: 100%"></div></div>
+                    </div>
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                        <div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-slate-400">🧠 ฉลาด</span><span id="stat-iq-txt" class="text-white">100</span></div>
+                        <div class="w-full bg-slate-950 rounded-full h-2"><div id="stat-iq-bar" class="bg-blue-500 h-2 rounded-full" style="width: 100%"></div></div>
+                    </div>
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                        <div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-slate-400">⭐ เสน่ห์</span><span id="stat-ch-txt" class="text-white">100</span></div>
+                        <div class="w-full bg-slate-950 rounded-full h-2"><div id="stat-ch-bar" class="bg-pink-500 h-2 rounded-full" style="width: 100%"></div></div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <p class="text-xs text-slate-400 font-bold mb-2">📖 บันทึกเหตุการณ์ 50 ครั้งล่าสุด</p>
+                    <div class="bg-slate-950 rounded-lg p-3 border border-slate-800 max-h-[140px] overflow-y-auto text-xs text-slate-300 space-y-2 hide-scrollbar" id="stat-history"></div>
+                </div>
+                <div class="flex gap-2" id="stat-action-buttons">
+                    <button id="btn-kill" onclick="assassinateTarget()" class="w-full py-3 bg-red-900 hover:bg-red-800 text-white rounded font-bold hidden border border-red-700 transition">💀 สังหาร (ไร้ความผิด)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Modal -->
+    <div id="modal-loan" class="fixed inset-0 modal-overlay z-[55] hidden flex items-center justify-center">
+        <div class="glass-panel p-6 w-[450px] border-t-4 border-red-500 bg-slate-900">
+            <h2 class="text-2xl font-black text-red-500 mb-2">🏦 หนี้สินล้นพ้นตัว!</h2>
+            <p class="text-sm text-slate-300 mb-4">บังคับกู้เงินด่วน หากหมดเวลาผ่อนแล้วเงินยังติดลบ เกมจะจบลงทันที!</p>
+            <div id="loan-choices" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- Shadow Modal -->
+    <div id="modal-shadow" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center">
+        <div class="glass-panel p-6 w-[400px] border-t-4 border-purple-500 bg-slate-900">
+            <h2 class="text-2xl font-black text-purple-400 mb-4 text-center">ARISE</h2>
+            <div id="dead-list" class="max-h-[250px] overflow-y-auto space-y-2 mb-4 hide-scrollbar"></div>
+            <input type="text" id="input-shadow-name" placeholder="ตั้งชื่อทหารเงา (เว้นว่าง = ทหารเงา)" class="w-full p-3 bg-slate-950 border border-purple-800 text-white rounded mb-4 text-center font-bold outline-none">
+            <div class="flex gap-2">
+                <button onclick="closeShadowModal()" class="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded text-white font-bold transition">ยกเลิก</button>
+                <button onclick="confirmShadow()" class="flex-1 py-3 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded transition">จงตื่น!</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Business Modal -->
+    <div id="modal-business" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center">
+        <div class="glass-panel p-6 w-[90%] max-w-[600px] max-h-[80vh] flex flex-col bg-slate-900">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+                <h2 class="text-2xl font-black text-yellow-500">🏢 การลงทุน & ธุรกิจ</h2>
+                <button onclick="closeBusinessModal()" class="text-slate-400 bg-slate-800 px-4 py-1.5 rounded font-bold">ปิด</button>
+            </div>
+            <div id="business-list" class="space-y-3 overflow-y-auto hide-scrollbar flex-1"></div>
+        </div>
+    </div>
+
+    <script>
+        const infReplacer = (k, v) => v === Infinity ? "INFINITY" : v;
+        const infReviver = (k, v) => v === "INFINITY" ? Infinity : v;
+
+        const GAME = {
+            user: null, famName: "", money: 0, date: new Date(2020, 0, 1), inflation: 100,
+            isUserPaused: false, isSystemPaused: false, loopId: null, yearsPassed: 0, ticks: 0,
+            businesses: [], _currentEventCharId: null, pendingBabies: [],
+            loan: { active: false, amount: 0, paymentPerTick: 0, ticksLeft: 0, totalTicks: 0 }
+        };
+        const CHARACTERS = {};
+
+        const JOBS = {
+            "UNEMPLOYED": { name: "ว่างงาน", baseIncome: 0, type: "NONE" },
+            "RETIRED": { name: "เกษียณอายุ", baseIncome: 0, type: "NONE" },
+            "STUDENT": { name: "นักศึกษา", baseIncome: 0, type: "NONE" },
+            "BABY": { name: "เด็ก", baseIncome: 0, type: "NONE" },
+            "DELIVERY": { name: "พนักงานส่งอาหาร", baseIncome: 80, type: "NORMAL" },
+            "FASTFOOD": { name: "พนักงานฟาสต์ฟู้ด", baseIncome: 100, type: "NORMAL" },
+            "DRIVER": { name: "คนขับรถแท็กซี่", baseIncome: 150, type: "NORMAL" },
+            "SECURITY": { name: "รปภ.", baseIncome: 180, type: "NORMAL" },
+            "SERVICE": { name: "พนักงานต้อนรับ", baseIncome: 200, type: "NORMAL" },
+            "CLERK": { name: "เสมียนออฟฟิศ", baseIncome: 250, type: "NORMAL" },
+            "SALES": { name: "พนักงานขาย", baseIncome: 300, type: "NORMAL" },
+            "TEACHER": { name: "ครู/อาจารย์", baseIncome: 400, type: "NORMAL", isGov: true, req: "EDU" },
+            "POLICE": { name: "ตำรวจ", baseIncome: 500, type: "NORMAL", isGov: true },
+            "PROGRAMMER": { name: "โปรแกรมเมอร์", baseIncome: 1200, type: "HIGH", req: "ENG" },
+            "ACCOUNTANT": { name: "นักบัญชี", baseIncome: 1000, type: "HIGH", req: "BUS" },
+            "ENGINEER": { name: "วิศวกร", baseIncome: 1500, type: "HIGH", req: "ENG" },
+            "LAWYER": { name: "ทนายความ", baseIncome: 2000, type: "HIGH", req: "LAW" },
+            "DOCTOR": { name: "แพทย์", baseIncome: 2000, type: "HIGH", req: "MED" },
+            "ACTOR": { name: "นักแสดง", baseIncome: 1500, type: "ENT", req: "ART" },
+            "SINGER": { name: "นักร้อง", baseIncome: 1200, type: "ENT", req: "ART" },
+            "STREAMER": { name: "สตรีมเมอร์", baseIncome: 800, type: "ENT" },
+            "THIEF": { name: "ขโมย/ย่องเบา", baseIncome: 600, type: "DARK" },
+            "DRUG_DEALER": { name: "พ่อค้ายา", baseIncome: 1500, type: "DARK" },
+            "MAFIA": { name: "มาเฟีย", baseIncome: 2000, type: "DARK" },
+            "HITMAN": { name: "นักฆ่ารับจ้าง", baseIncome: 2000, type: "DARK" },
+            "WIZARD": { name: "พ่อมด", baseIncome: 800, type: "FANTASY" },
+            "PRESIDENT": { name: "ประธานาธิบดี", baseIncome: 100000, type: "SPECIAL" },
+            "SHADOW_MONARCH": { name: "จักรพรรดิเงา", baseIncome: 100000, type: "SPECIAL" },
+            "RULER": { name: "ผู้ปกครองจักรวาล", baseIncome: 0, type: "SPECIAL" },
+            "AETHER_CEO": { name: "ผู้ก่อตั้ง AETHER", baseIncome: 5000, type: "SPECIAL", isBusiness: true },
+            "SUPREME_PROSECUTOR": { name: "อัยการสูงสุด", baseIncome: 1000, type: "SPECIAL" },
+            "DANNIE_LAWYER": { name: "ทนายความพิเศษ", baseIncome: 653, type: "SPECIAL" }
+        };
+
+        const CLONE_TYPES = [
+            { name: "Genesis", hap: 100, iq: 200, ch: 200 }, { name: "Abyssor", hap: 100, iq: 150, ch: 100 },
+            { name: "Ominos", hap: 100, iq: 175, ch: 75 }, { name: "Vitalis", hap: 100, iq: 100, ch: 60 },
+            { name: "Axiom", hap: 100, iq: 800, ch: 50 }, { name: "Oracle", hap: 100, iq: 1000, ch: 67 },
+            { name: "Synapse", hap: 100, iq: 120, ch: Infinity }, { name: "Aethelos", hap: 100, iq: Infinity, ch: 20 },
+            { name: "Null", hap: 100, iq: 99, ch: 86 }
+        ];
+
+        const UNIVERSITIES = [
+            { id: "MED", name: "คณะแพทยศาสตร์", reqIq: 180, cost: 30000 },
+            { id: "LAW", name: "คณะนิติศาสตร์", reqIq: 150, cost: 20000 },
+            { id: "ENG", name: "คณะวิศวกรรมศาสตร์", reqIq: 130, cost: 15000 },
+            { id: "BUS", name: "คณะบริหารธุรกิจ", reqIq: 100, cost: 10000 },
+            { id: "EDU", name: "คณะศึกษาศาสตร์", reqIq: 80, cost: 8000 },
+            { id: "ART", name: "คณะศิลปกรรมศาสตร์", reqIq: 0, reqCh: 100, cost: 12000 }
+        ];
+
+        const BUSINESS_DB = [
+            { id: "b1", name: "ร้านกาแฟริมทาง", cost: 100000, income: 500 },
+            { id: "b2", name: "แฟรนไชส์สะดวกซื้อ", cost: 500000, income: 3000 },
+            { id: "b3", name: "อพาร์ทเมนท์ให้เช่า", cost: 2000000, income: 15000 },
+            { id: "b4", name: "บริษัทสตาร์ทอัพ", cost: 10000000, income: 80000 },
+            { id: "b5", name: "Megacorp", cost: 50000000, income: 1000000 }
+        ];
+
+        const NAMES = { M: ["สมชาย","กฤษณะ","ภานุเดช","กฤษดา","สมพงษ์","อิทธิพล","วรวุฒิ","แดน","แจ็ค","วายุ"], F: ["วรรณพร","สิริยากร","อุษา","โจลี่","สมหญิง","กัลยา","มาลี","ลิซ่า","วิภา","เจน"] };
+
+        function generateId() { return 'c_' + Math.random().toString(36).substr(2, 9); }
+        function randomName(g) { let arr = NAMES[g] || NAMES.M; return arr[Math.floor(Math.random()*arr.length)]; }
+
+        window.mockLogin = function(provider) {
+            GAME.user = { uid: "user_sim", name: provider + " User" };
+            document.getElementById('login-screen').classList.add('hidden'); document.getElementById('start-screen').classList.remove('hidden');
+            document.getElementById('user-greeting').innerText = `ยินดีต้อนรับ, ${provider}`;
+            const saved = localStorage.getItem('familyLifeV5Save');
+            if(saved) {
+                try {
+                    const data = JSON.parse(saved, infReviver);
+                    document.getElementById('save-slot').classList.remove('hidden');
+                    document.getElementById('save-info').innerText = `ตระกูล: ${data.famName} | เงิน: $${Math.floor(data.money).toLocaleString()}`;
+                } catch(e) {}
+            }
+        };
+        window.realLogin = function(provider) { window.mockLogin(provider); };
+
+        function logout() {
+            GAME.user = null; if(GAME.loopId) clearInterval(GAME.loopId);
+            document.getElementById('start-screen').classList.add('hidden'); document.getElementById('game-ui').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+        }
+        function saveGameToCloud() {
+            const data = { famName: GAME.famName, money: GAME.money, date: GAME.date.getTime(), inflation: GAME.inflation, yearsPassed: GAME.yearsPassed, characters: CHARACTERS, businesses: GAME.businesses, loan: GAME.loan };
+            localStorage.setItem('familyLifeV5Save', JSON.stringify(data, infReplacer));
+            showResultModal("บันทึกสำเร็จ", "ระบบได้บันทึกข้อมูลตระกูลลงในฐานข้อมูลแล้ว!", []);
+        }
+        function loadGame() {
+            const saved = localStorage.getItem('familyLifeV5Save'); if(!saved) return;
+            try {
+                const data = JSON.parse(saved, infReviver);
+                GAME.famName = data.famName; GAME.money = data.money; GAME.date = new Date(data.date);
+                GAME.inflation = data.inflation; GAME.yearsPassed = data.yearsPassed || 0; 
+                GAME.businesses = data.businesses || []; GAME.loan = data.loan || {active:false};
+                Object.keys(CHARACTERS).forEach(k => delete CHARACTERS[k]); Object.assign(CHARACTERS, data.characters);
+                
+                // STRICT SANITIZATION: กวาดล้างมนุษย์อมตะ!
+                Object.values(CHARACTERS).forEach(c => {
+                    let isGod = (c.specialRole === "RULER" || c.specialRole === "SHADOW_MONARCH" || c.isShadow || c.isClone);
+                    if(isGod) {
+                        c.age = Infinity; c.maxAge = Infinity; c.hp = Infinity;
+                        if(c.specialRole === "SHADOW_MONARCH") c.hap = Infinity;
+                        else if(c.specialRole === "RULER") { c.hap = Infinity; c.iq = Infinity; c.ch = Infinity; }
+                    } else {
+                        // ป้องกันคนธรรมดาเอ๋อเป็นอมตะจากการโหลดเซฟ หรือจากการแต่งงานกับเทพ
+                        if(c.age === Infinity || c.age === "INFINITY") c.age = Math.floor(Math.random() * 13) + 18; // สุ่มให้กลับเป็นคนธรรมดาอายุ 18-30
+                        if(c.hp === Infinity || c.hp === "INFINITY") c.hp = 100;
+                        if(c.maxAge === Infinity || c.maxAge === "INFINITY") c.maxAge = Math.floor(Math.random()*41)+60;
+                    }
+                });
+                startGameLoop();
+            } catch(e) { alert("ไฟล์บันทึกเสียหาย!"); }
+        }
+
+        function createBaseCharacter(gender) {
+            let maxA = Math.floor(Math.random()*41)+60; // 60-100
+            if(Math.random()<0.01) maxA = Math.floor(Math.random()*23)+101; // 101-123
+            return {
+                id: generateId(), name: randomName(gender), gender: gender, age: 0, maxAge: maxA,
+                hp: Math.floor(Math.random()*40)+60, hap: Math.floor(Math.random()*40)+60,
+                iq: Math.floor(Math.random()*60)+70, ch: Math.floor(Math.random()*80)+20,
+                job: "BABY", status: "SINGLE", isDead: false, isJail: 0, spouseId: null, parentId: null, history: [], exp: 0
+            };
+        }
+
+        function startNewGame(gender) {
+            let fam = document.getElementById('start-fam-name').value.trim();
+            let cName = document.getElementById('start-char-name').value.trim();
+            let devCode = document.getElementById('dev-code').value.trim();
+            
+            GAME.famName = fam || "ผู้ไร้นาม";
+            // สุ่มเงินเริ่มต้น 10,000 - 50,000
+            GAME.money = Math.floor(Math.random() * 40001) + 10000; 
+            GAME.inflation = 100; GAME.yearsPassed = 0; GAME.ticks = 0; GAME.businesses = []; GAME.date = new Date(2020,0,1);
+            GAME.loan = { active: false, amount: 0, paymentPerTick: 0, ticksLeft: 0, totalTicks: 0 };
+            Object.keys(CHARACTERS).forEach(k => delete CHARACTERS[k]);
+            
+            let c = createBaseCharacter(gender); c.isFounder = true; c.age = 18; if(cName) c.name = cName;
+            
+            // Dev Codes & Gacha
+            if(devCode === "Rule") setupChar(c, "เจ้าผู้ปกครอง", "NONE", Infinity, Infinity, Infinity, Infinity, "RULER", "RULER");
+            else if(devCode === "AETHER") setupChar(c, "แดรคคูลา", "M", 99, 99, 100, 99, "AETHER_CEO", null);
+            else if(devCode === "Somchai") setupChar(c, "สมชาย", "M", 99, 99, 100, 1000, "PRESIDENT", null);
+            else if(devCode === "Kritsana") setupChar(c, "กฤษณะ", "M", 400, 99, 100, 99, "UNEMPLOYED", null);
+            else if(devCode === "Kritsada") setupChar(c, "กฤษดา", "M", 400, 99, 100, 99, "UNEMPLOYED", "REINCARNATE_K");
+            else if(devCode === "Arise") setupChar(c, "ซอง จินอู", "M", Infinity, Infinity, Infinity, Infinity, "SHADOW_MONARCH", "SHADOW_MONARCH");
+            else if(devCode === "888") setupChar(c, "วรรณพร", "F", 70, 99, 100, 100000, "STREAMER", null);
+            else if(devCode === "Joli") setupChar(c, "โจลี่", "F", 190, 99, 100, 99, "SUPREME_PROSECUTOR", null);
+            else if(devCode === "Dannie") setupChar(c, "แดนนี่", "F", 90, 100, 100, 99, "DANNIE_LAWYER", "REINCARNATE_D");
+            else {
+                let r1 = Math.random();
+                if(r1 < 0.01) setupChar(c, "เจ้าผู้ปกครอง", "NONE", Infinity, Infinity, Infinity, Infinity, "RULER", "RULER");
+                else if(gender === "M") {
+                    let r = Math.random();
+                    if(r < 0.001) setupChar(c, "ซอง จินอู", "M", Infinity, Infinity, Infinity, Infinity, "SHADOW_MONARCH", "SHADOW_MONARCH");
+                    else if(r < 0.011) setupChar(c, "สมชาย", "M", 99, 99, 100, 1000, "PRESIDENT", null);
+                    else if(r < 0.021) setupChar(c, "กฤษณะ", "M", 400, 99, 100, 99, "UNEMPLOYED", null);
+                    else if(r < 0.031) setupChar(c, "กฤษดา", "M", 400, 99, 100, 99, "UNEMPLOYED", "REINCARNATE_K");
+                    else if(r < 0.131) setupChar(c, "แดรคคูลา", "M", 99, 99, 100, 99, "AETHER_CEO", null);
+                } else {
+                    let r = Math.random();
+                    if(r < 0.001) setupChar(c, "แดนนี่", "F", 90, 100, 100, 99, "DANNIE_LAWYER", "REINCARNATE_D");
+                    else if(r < 0.011) setupChar(c, "โจลี่", "F", 190, 99, 100, 99, "SUPREME_PROSECUTOR", null);
+                    else if(r < 0.111) setupChar(c, "วรรณพร", "F", 70, 99, 100, 100000, "STREAMER", null);
+                }
+            }
+
+            setCharIcon(c); CHARACTERS[c.id] = c;
+            if(c.age === 18 && c.job === "UNEMPLOYED" && c.specialRole !== "RULER") { c.job = "STUDENT"; c._pendingUni = true; }
+            startGameLoop();
+        }
+
+        function setupChar(c, n, g, iq, hp, hap, ch, j, spec) {
+            c.name = n; if(g !== "NONE") c.gender = g; else c.gender = "NONE";
+            c.iq = iq; c.hp = hp; c.hap = hap; c.ch = ch; c.job = j; 
+            if(spec) c.specialRole = spec;
+            if(spec === "RULER" || spec === "SHADOW_MONARCH") { c.age = Infinity; c.maxAge = Infinity; }
+        }
+
+        function setCharIcon(c) {
+            if(c.isShadow) c.icon = "👤";
+            else if(c.isClone) c.icon = "🧬";
+            else if(c.specialRole === "RULER") c.icon = "👁️";
+            else if(c.name === "ซอง จินอู") c.icon = "SJW";
+            else if(c.age < 3) c.icon = "👶";
+            else if(c.age < 12) c.icon = "👦";
+            else if(c.gender === "M") c.icon = c.age > 50 ? "👴" : "👨";
+            else if(c.gender === "F") c.icon = c.age > 50 ? "👵" : "👩";
+            else c.icon = "👱";
+        }
+
+        function logHistory(c, txt) { 
+            let a = c.age===Infinity ? "อมตะ" : `${c.age}ปี`;
+            c.history.unshift(`[${a}] ${txt}`); 
+            if(c.history.length > 50) c.history.pop(); 
+        }
+
+        function getPrefix(c) {
+            if(c.specialRole === "RULER" || c.specialRole === "SHADOW_MONARCH" || c.isClone) return "อมตะ";
+            if(c.isShadow) return "ทหารเงา";
+            let hp = c.hp===Infinity?100:c.hp; let hap = c.hap===Infinity?100:c.hap; let iq = c.iq===Infinity?200:c.iq; let ch = c.ch===Infinity?200:c.ch;
+            if(hap >= 90) return "มีความสุข"; if(hp >= 90) return "แข็งแกร่ง"; if(iq >= 100) return "มีความรู้"; if(ch >= 100) return "น่ารัก";
+            if(hap <= 30) return "เศร้า"; if(hp <= 30) return "อ่อนแอ"; if(iq <= 30) return "โง่"; if(ch <= 30) return "น่าเกลียด";
+            return "คนธรรมดา";
+        }
+
+        function togglePause() {
+            GAME.isUserPaused = !GAME.isUserPaused;
+            let btn = document.getElementById('btn-pause');
+            if(GAME.isUserPaused) { btn.innerText = "▶"; btn.classList.replace('bg-orange-500', 'bg-green-500'); btn.classList.replace('hover:bg-orange-400', 'hover:bg-green-400'); }
+            else { btn.innerText = "⏸"; btn.classList.replace('bg-green-500', 'bg-orange-500'); btn.classList.replace('hover:bg-green-400', 'hover:bg-orange-400'); }
+        }
+
+        function startGameLoop() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden'); document.getElementById('game-ui').classList.add('flex');
+            document.getElementById('ui-fam-name').innerText = GAME.famName;
+            updateDashboard(); 
+            if(GAME.loopId) clearInterval(GAME.loopId);
+            GAME.loopId = setInterval(gameTick, 100); // Realtime (10 ticks = 1 sec = 10 days)
+        }
+
+        function calculateCharIncome(c) {
+            if(c.isDead || c.isJail > 0) return 0;
+            const infMult = GAME.inflation / 100;
+            let base = JOBS[c.job]?.baseIncome || 0;
+            if(c.specialRole === "SHADOW_MONARCH" || c.specialRole === "PRESIDENT") return 100000;
+            if(c.age < 18 && c.age !== Infinity && !c.isClone && !c.isShadow && c.specialRole !== "RULER") return 0; 
+            if(c.job === "RETIRED") return (JOBS[c._preRetireJob]?.isGov ? (JOBS[c._preRetireJob].baseIncome * 0.1) : -1500) * infMult;
+            return base * (1 + (c.exp * 0.05));
+        }
+
+        function gameTick() {
+            // STOP TIME COMPLETELY if paused manually or by an event modal
+            if(GAME.isUserPaused || GAME.isSystemPaused) return;
+
+            GAME.ticks++;
+            let prevYear = GAME.date.getFullYear();
+            GAME.date.setDate(GAME.date.getDate() + 1); // 1 tick = 1 day
+            let yearChanged = GAME.date.getFullYear() > prevYear;
+            if(yearChanged) { GAME.inflation += 3; GAME.yearsPassed++; }
+            
+            const infMult = GAME.inflation / 100;
+            let netIncome = 0;
+            let activeChars = Object.values(CHARACTERS).filter(c => !c.isDead);
+
+            if(GAME.loan.active) {
+                GAME.money -= GAME.loan.paymentPerTick; netIncome -= (GAME.loan.paymentPerTick * 10);
+                GAME.loan.ticksLeft--;
+                if(GAME.loan.ticksLeft <= 0) {
+                    GAME.loan.active = false;
+                    if(GAME.money < 0) { GAME.isSystemPaused = true; alert("GAME OVER: ล้มละลาย!"); return; }
+                }
+            }
+
+            activeChars.forEach(c => {
+                if(yearChanged && GAME.date.getMonth()===0 && GAME.date.getDate()===1) {
+                    if(c.age !== Infinity && !c.isClone && !c.isShadow && c.specialRole !== "RULER" && c.specialRole !== "SHADOW_MONARCH") {
+                        c.age++;
+                        if(c.age === 18) { c.job = "STUDENT"; c._pendingUni = true; }
+                        if(c.age === 22 && c.job === "STUDENT") { c.job = "UNEMPLOYED"; c._pendingGrad = true; }
+                        if(c.age >= 60 && c.job !== "RETIRED") {
+                            c._preRetireJob = c.job; c.job = "RETIRED"; logHistory(c, "เกษียณ");
+                            showResultModal("วัยเกษียณ", `${c.name} เข้าสู่วัยเกษียณแล้ว`, []); return;
+                        }
+                        if(c.age >= 60 && c.hp !== Infinity) {
+                            let deathChance = (c.age - 55)*0.01 + ((100-c.hp)*0.005);
+                            if(c.age >= c.maxAge || c.age >= 123 || Math.random() < deathChance) {
+                                killChar(c, "หมดอายุขัย", "สิ้นลม"); showResultModal("สิ้นอายุขัย", `${c.name} จากไปอย่างสงบ (อายุ ${c.age}ปี)`, []); return;
+                            }
+                        }
+                    }
+                }
+                if(c.isJail > 0 && GAME.ticks % 10 === 0) {
+                    c.isJail -= 1; if(c.isJail <= 0) { c.isJail = 0; logHistory(c, "พ้นโทษ"); showResultModal("พ้นโทษ", `${c.name} ถูกปล่อยตัว!`, []); return; }
+                }
+
+                let cInc = calculateCharIncome(c);
+                if(c.age >= 18 && c.age !== Infinity && !c.isShadow && !c.isClone && c.specialRole !== "RULER" && c.job !== "RETIRED") {
+                    if(cInc === 0) cInc = -1500 * infMult; // Living cost
+                }
+                netIncome += cInc;
+            });
+
+            GAME.businesses.forEach(b => { netIncome += b.income; });
+            
+            let tickMoney = netIncome / 10;
+            if(tickMoney < 0 && activeChars.some(c => JOBS[c.job]?.baseIncome > 0)) tickMoney = 0; 
+            GAME.money += tickMoney;
+            
+            if(GAME.money < 0 && !GAME.loan.active && !GAME.isSystemPaused) { triggerLoanModal(); return; }
+
+            // Update UI
+            document.getElementById('ui-money').innerText = `$${Math.floor(GAME.money).toLocaleString()}`;
+            document.getElementById('ui-date').innerText = `${GAME.date.getDate()}/${GAME.date.getMonth()+1}/${GAME.date.getFullYear()}`;
+            document.getElementById('ui-inflation').innerText = `เงินเฟ้อ: +${GAME.inflation-100}%`;
+            document.getElementById('ui-income').innerText = netIncome >= 0 ? `+$${Math.floor(netIncome).toLocaleString()}/s` : `-$${Math.abs(Math.floor(netIncome)).toLocaleString()}/s`;
+            
+            if(GAME.ticks % 10 === 0) renderFamilyTree();
+
+            // Event Trigger (Every ~60 ticks = ~6 seconds real time)
+            if(GAME.isSystemPaused || activeChars.length === 0) return;
+
+            let pUni = activeChars.find(c => c._pendingUni); if(pUni) { pUni._pendingUni = false; showEventModal(pUni.id, "UNIVERSITY"); return; }
+            let pGrad = activeChars.find(c => c._pendingGrad); if(pGrad) { pGrad._pendingGrad = false; showEventModal(pGrad.id, "GRADUATION"); return; }
+
+            if(GAME.ticks % 60 === 0) {
+                let target = activeChars[Math.floor(Math.random()*activeChars.length)];
+                generateDynamicEvent(target);
+            }
+            
+            let hasGod = activeChars.some(c => c.specialRole === "SHADOW_MONARCH" || c.specialRole === "RULER" || c.isClone || c.isShadow);
+            if(activeChars.length === 0 || (activeChars.every(c => c.isDead) && !hasGod)) {
+                GAME.isSystemPaused = true; alert("GAME OVER: ตระกูลของคุณสูญสิ้นแล้ว");
+            }
+        }
+
+        function triggerLoanModal() {
+            GAME.isSystemPaused = true;
+            let cBox = document.getElementById('loan-choices'); cBox.innerHTML = '';
+            [ {a:10000, y:2}, {a:100000, y:5}, {a:1000000, y:10} ].forEach(opt => {
+                let t = opt.y * 365 * 10; let p = opt.a / (opt.y * 12); 
+                let btn = document.createElement('button');
+                btn.className = "w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold border border-slate-600 px-5 flex justify-between shadow transition";
+                btn.innerHTML = `<span>กู้ $${opt.a.toLocaleString()} (${opt.y} ปี)</span> <span class="text-red-400">ผ่อน $${Math.floor(p).toLocaleString()}/ด.</span>`;
+                btn.onclick = () => {
+                    GAME.money += opt.a; GAME.loan = { active: true, amount: opt.a, paymentPerTick: p/300, ticksLeft: t, totalTicks: t };
+                    document.getElementById('modal-loan').classList.add('hidden'); GAME.isSystemPaused = false;
+                };
+                cBox.appendChild(btn);
+            });
+            document.getElementById('modal-loan').classList.remove('hidden');
+        }
+
+        function generateDynamicEvent(c) {
+            GAME.isSystemPaused = true; // FREEZE TIME IMMEDIATELY
+            let activeNormal = Object.values(CHARACTERS).filter(x => !x.isDead && !x.isShadow && !x.isClone && x.specialRole!=="RULER");
+            let safeMode = GAME.yearsPassed < 5;
+            let type = "RANDOM";
+            let isGodServant = c.isShadow || c.isClone;
+
+            if(c.specialRole === "RULER" && Math.random() < 0.2) { showEventModal(c.id, "RULER_MADNESS", safeMode); return; }
+            if(c.specialRole === "SHADOW_MONARCH" && Math.random() < 0.15) { showEventModal(c.id, "MONARCH_THREAT", safeMode); return; }
+            if(c.job === "PRESIDENT" && Math.random() < 0.3) { showEventModal(c.id, "PRESIDENT_DUTY", safeMode); return; }
+            if((c.specialRole === "RULER" || c.specialRole === "SHADOW_MONARCH") && Math.random() < 0.001) { showEventModal(c.id, "ACCIDENT", safeMode); return; }
+
+            if(activeNormal.length === 1 && c.id === activeNormal[0].id && !isGodServant) {
+                if(c.status === "SINGLE" && c.age >= 18) type = "SUITOR";
+                else if(c.status === "MARRIED") {
+                    let kids = Object.values(CHARACTERS).filter(k => k.parentId === c.id && !k.isDead);
+                    if(kids.length === 0) type = "WANT_KIDS";
+                }
+            }
+
+            if(type === "RANDOM" && c.status === "SINGLE" && c.age >= 18 && !isGodServant) {
+                if(Math.random() < 0.7) type = "SUITOR"; 
+            }
+
+            if(type === "RANDOM") {
+                if(c.isJail > 0) type = "JAIL";
+                else if(c.age < 6) type = "TODDLER";
+                else if(isGodServant) {
+                    type = ["JOB_RANDOM", "PROPERTY", "LUCKY"][Math.floor(Math.random()*3)];
+                } else {
+                    let pool = ["JOB_RANDOM", "PROPERTY", "LUCKY", "SICKNESS"];
+                    if(c.status === "MARRIED") {
+                        let spouse = CHARACTERS[c.spouseId];
+                        let hasKids = Object.values(CHARACTERS).some(k => k.parentId === c.id && !k.isDead);
+                        if(!hasKids && spouse && spouse.isJail === 0) pool.push("WANT_KIDS", "WANT_KIDS");
+                        pool.push("MARRIAGE_ISSUE");
+                    }
+                    type = pool[Math.floor(Math.random()*pool.length)];
+                }
+            }
+            showEventModal(c.id, type, safeMode);
+        }
+
+        function showEventModal(charId, evType, safeMode=false) {
+            GAME._currentEventCharId = charId;
+            let c = CHARACTERS[charId];
+            let title = "", desc = "", icon = "⚠️", choices = [];
+            const inf = GAME.inflation / 100;
+            let costMod = c.specialRole === "RULER" ? 0 : 1; 
+
+            document.getElementById('ev-char').innerText = c.name;
+            document.getElementById('ev-funds').innerText = `$${Math.floor(GAME.money).toLocaleString()}`;
+
+            if(evType === "UNIVERSITY") {
+                title = "ทางแยกชีวิต (อายุ 18)"; desc = `เลือกคณะที่ใช่เพื่ออนาคต (IQ: ${c.iq==="Infinity"?200:c.iq})`; icon = "🎓";
+                UNIVERSITIES.forEach(u => {
+                    let cost = u.cost * inf * costMod; let reqIq = u.reqIq || 0;
+                    let pass = (c.iq === Infinity) || (c.iq >= reqIq);
+                    choices.push({
+                        t: `${u.name} (ใช้ IQ ${reqIq})`, c: cost, disable: !pass,
+                        fn: () => {
+                            if(cost>0) GAME.money -= cost; c.job = "STUDENT"; c._degree = u.id;
+                            if(c.iq!==Infinity) c.iq += 20; logHistory(c, `เข้าเรียน ${u.name}`);
+                            return [`ติด ${u.name}!`, [cost>0?`-$${Math.floor(cost)}`:'', "IQ +20"]];
+                        }
+                    });
+                });
+                choices.push({ t: "ไม่เรียน หาเงินดีกว่า", c: 0, fn: () => { c.job="UNEMPLOYED"; return ["ออกจากระบบการศึกษา",[]]; } });
+                choices.push({ t: "🔄 รีเฟรช", c: 0, peek:true, fn: () => { showEventModal(charId, evType, safeMode); return ["",[]]; } });
+            }
+            else if(evType === "GRADUATION") {
+                title = "จบการศึกษา (อายุ 22)"; desc = `หางานทำซะ! คุณจบคณะ: ${UNIVERSITIES.find(x=>x.id===c._degree)?.name || "มัธยม"}`; icon = "💼";
+                let degree = c._degree || "NONE";
+                let jobPool = Object.keys(JOBS).filter(k => JOBS[k].type!=="NONE" && JOBS[k].type!=="SPECIAL" && JOBS[k].type!=="FANTASY");
+                let options = jobPool.sort(()=>0.5-Math.random()).slice(0, 4);
+                let matchJob = Object.keys(JOBS).find(k => JOBS[k].req === degree);
+                if(matchJob && !options.includes(matchJob)) options[0] = matchJob; 
+
+                options.forEach(j => {
+                    let jData = JOBS[j]; let chance = jData.req === degree ? 0.9 : (jData.type==="HIGH" && degree==="NONE" ? 0.1 : 0.5);
+                    choices.push({
+                        t: `สมัคร: ${jData.name} (โอกาส ${Math.floor(chance*100)}%)`, c: 0,
+                        fn: () => {
+                            if(Math.random() < chance) { c.job = j; return [`ได้งาน ${jData.name}`, [`รายได้ +$${jData.baseIncome}/s`]]; }
+                            if(jData.type === "DARK" && Math.random()<0.3) { triggerCourt(c,"พยายามทำสิ่งผิดกฎหมาย",12); return ["PEEK",[]]; }
+                            return ["สัมภาษณ์ไม่ผ่าน!", ["ว่างงานต่อไป"]];
+                        }
+                    });
+                });
+                choices.push({ t: "นอนอยู่บ้าน", c: 0, fn: () => { return ["ว่างงานต่อไป",[]]; } });
+            }
+            else if(evType === "SUITOR") {
+                let sGender = c.gender === "M" ? "F" : "M";
+                let suitor = createBaseCharacter(sGender);
+                let jp = Object.keys(JOBS).filter(k => JOBS[k].type === "NORMAL" || JOBS[k].type === "HIGH");
+                suitor.job = jp[Math.floor(Math.random() * jp.length)];
+                
+                // ถ้านาง/นายแบบเป็นเทพอมตะ ให้สุ่มอายุคนมาจีบเป็นคนปกติ 18-30 ปี
+                if (c.age === Infinity) {
+                    suitor.age = Math.floor(Math.random() * 13) + 18;
+                    suitor.maxAge = Math.floor(Math.random() * 41) + 60; // ให้มีอายุขัยปกติ
+                } else {
+                    suitor.age = c.age;
+                }
+                
+                suitor.name = randomName(sGender);
+                title = "ความรักมาเยือน!"; desc = `มีคนชื่อ ${suitor.name} (${JOBS[suitor.job].name}) เข้ามาจีบ!`; icon = "💕";
+                
+                choices = [
+                    { t: "👁️ ส่องสเตตัส", c: 0, peek:true, fn: () => { showCharStatus(null, suitor, true); return ["PEEK", []]; } },
+                    { t: "จัดงานแต่งอลังการ", c: 15000*inf*costMod, fn: () => marry(c, suitor, 15000*inf*costMod) },
+                    { t: "จดทะเบียนเงียบๆ", c: 2000*inf*costMod, fn: () => marry(c, suitor, 2000*inf*costMod) },
+                    { t: "ปฏิเสธทันที", c: 0, fn: () => { return ["โสดต่อไป", []]; } }
+                ];
+            }
+            else if(evType === "WANT_KIDS") {
+                title = "ทายาทตระกูล"; desc = "คุณและคู่สมรสอยากมีลูกหรือไม่?"; icon = "🍼";
+                let spouse = CHARACTERS[c.spouseId];
+                if(c.specialRole !== "RULER" && spouse && c.gender === spouse.gender) {
+                    choices = [
+                        { t: "รับบุตรบุญธรรม", c: 5000*inf*costMod, fn: () => attemptBaby(c, 5000*inf*costMod, 1.0, true) },
+                        { t: "ไม่เอาลูกเด็ดขาด", c: 0, fn: () => { return ["ใช้ชีวิตสองคน",[]]; } }
+                    ];
+                } else {
+                    choices = [
+                        { t: "พยายามตามธรรมชาติ", c: 0, fn: () => attemptBaby(c, 0, 0.4) },
+                        { t: "ทำ IVF (ติด 100%)", c: 10000*inf*costMod, fn: () => attemptBaby(c, 10000*inf*costMod, 1.0) },
+                        { t: "ยังไม่อยากมี", c: 0, fn: () => { return ["เลื่อนไปก่อน",[]]; } }
+                    ];
+                }
+            }
+            else if(evType === "LUCKY") {
+                title = "ลอตเตอรี่จักรวาล"; desc = "คนขายหวยเสนอรางวัล 2,000 ล้าน!"; icon = "🎫";
+                choices = [
+                    { t: "ซื้อ 1 ใบ (0.000001%)", c: 100*inf*costMod, fn: () => { if(costMod>0) GAME.money-=100*inf; if(Math.random()<0.000001){ GAME.money+=2000000000; return ["ถูกรางวัล 2,000 ล้าน!!!",["+$2B"]]; } return ["กินเรียบ",[`-$${Math.floor(100*inf*costMod)}`]]; } },
+                    { t: "ซื้อ 10 ใบ (1%)", c: 1000*inf*costMod, fn: () => { if(costMod>0) GAME.money-=1000*inf; if(Math.random()<0.01){ GAME.money+=2000000000; return ["ถูกรางวัล 2,000 ล้าน!!!",["+$2B"]]; } return ["กินเรียบ",[`-$${Math.floor(1000*inf*costMod)}`]]; } },
+                    { t: "เดินหนีไป", c: 0, fn: () => { return ["ประหยัดเงิน",[]]; } }
+                ];
+            }
+            else if(evType === "JAIL") {
+                title = "ชีวิตในเรือนจำ"; desc = `เพื่อนนักโทษชวนแหกคุก หรือจะรายงานผู้คุม?`; icon = "⛓️";
+                let iqV = c.iq===Infinity?200:c.iq; let esc = Math.min(1, 0.2 + (iqV>100?(iqV-100)*0.01:0));
+                choices = [
+                    { t: `ร่วมมือแหกคุก (โอกาส ${Math.floor(esc*100)}%)`, c: 0, fn: () => {
+                        if(Math.random() < esc) { c.isJail = 0; return ["แหกคุกสำเร็จ!", ["พ้นโทษ"]]; }
+                        c.isJail = (c.isJail === -1) ? -2 : c.isJail*2; 
+                        if(c.isJail===-2) { killChar(c,"ประหาร","แหกคุกพลาด"); return ["โดนประหารชีวิต!",["ตาย"]]; } 
+                        return ["โดนจับได้ โทษเพิ่มเท่าตัว",[`คุก ${c.isJail}ด.`]]; 
+                    }},
+                    { t: "รายงานผู้คุม (ลดโทษ)", c: 0, fn: () => {
+                        if(c.isJail===-1) return ["จำคุกตลอดชีวิต ลดโทษไม่ได้",[]];
+                        if(Math.random() < (iqV/200)) { c.isJail = Math.floor(c.isJail/2); return ["ลดโทษครึ่งนึง!",[`คุก ${c.isJail}ด.`]]; }
+                        killChar(c,"โดนแทง","รายงานผู้คุม"); return ["เพื่อนจับได้ โดนแทงตาย!",["ตาย"]];
+                    }},
+                    { t: "อยู่เงียบๆ", c: 0, fn: () => { if(c.hap!==Infinity) c.hap-=5; return ["น่าเบื่อ",["HAP -5"]]; } }
+                ];
+            }
+            else if(evType === "SICKNESS") {
+                title = "โรคร้ายแรง"; desc = "พบเซลล์มะเร็งในร่างกาย!"; icon = "🏥";
+                choices = [
+                    { t: "หาหมอแพง (รอด 66%)", c: 50000*inf*costMod, fn: () => { if(costMod>0) GAME.money-=50000*inf; if(Math.random()<0.66) return ["รักษาสำเร็จ!",[]]; if(!safeMode){ killChar(c,"โรคร้าย",""); return ["ตาย",["ตาย"]]; } return ["รอดหวุดหวิด",[]]; } },
+                    { t: "สวดมนต์ (รอด 20%)", c: 0, fn: () => { if(Math.random()<0.2) return ["ปาฏิหาริย์!",[]]; if(!safeMode){ killChar(c,"โรคร้าย",""); return ["ตาย",["ตาย"]]; } return ["รอดหวุดหวิด",[]]; } },
+                    { t: "เอเลี่ยนรักษา (100%)", c: 1000000*inf*costMod, fn: () => { if(costMod>0) GAME.money-=1000000*inf; return ["หายขาด",[]]; } }
+                ];
+            }
+            else if(evType === "RULER_MADNESS") {
+                title = "ความพิโรธของพระเจ้า"; desc = "เบื่อหน่ายกับพวกมดปลวก..."; icon = "👁️";
+                choices = [
+                    { t: "เสกเงินเล่นๆ (ฟรี)", c: 0, fn: () => { GAME.money += 1000000000; return ["เงินหล่นทับบ้าน!", ["+$1,000,000,000"]]; } },
+                    { t: "ลบคนในครอบครัวทิ้ง (ฟรี)", c: 0, fn: () => { 
+                        let oth = Object.values(CHARACTERS).filter(x => !x.isDead && x.id !== c.id);
+                        if(oth.length > 0) { let t = oth[Math.floor(Math.random()*oth.length)]; killChar(t, "ถูกพระเจ้าลบ", ""); return [`ลบ ${t.name}`, [`${t.name} ตาย`]]; } return ["ไม่มีใครแล้ว",[]];
+                    }},
+                    { t: "นอนพัก (ฟรี)", c: 0, fn: () => { return ["จักรวาลสงบสุข", []]; } }
+                ];
+            }
+            else if(evType === "MONARCH_THREAT") {
+                let req = Math.floor(Math.random() * 25) + 5;
+                title = "แอนทาเรสบุก!"; desc = `ต้องการกองทัพอย่างน้อย ${req} ตนเพื่อปะทะ!`; icon = "🌌";
+                choices = [
+                    { t: "ออกไปปะทะ!", c: 0, fn: () => {
+                        let army = Object.values(CHARACTERS).filter(x => !x.isDead).length;
+                        if(army >= req) { 
+                            let died = 0; Object.values(CHARACTERS).filter(x=>!x.isDead&&x.isShadow).forEach(s=>{ if(Math.random()<0.4){killChar(s,"สละชีพ","");died++;} });
+                            return [`ชนะสงคราม! เสียทหารเงา ${died} ตน`, []]; 
+                        }
+                        if(!safeMode) { killChar(c, "แพ้สงคราม", ""); return ["โดนลบ!", ["ตาย"]]; } return ["รอดหวุดหวิด", []];
+                    }},
+                    { t: "หลบซ่อน", c: 0, fn: () => { if(c.ch!==Infinity) c.ch-=50; return ["เสียเกียรติ", ["CH -50"]]; } }
+                ];
+            }
+            else {
+                title = "บ้านและครอบครัว"; desc = "หลังคารั่ว น้ำท่วมพังหมดเลย!"; icon = "🏠";
+                choices = [
+                    { t: "จ้างช่างพรีเมียม", c: 10000*inf*costMod, fn: () => { if(costMod>0) GAME.money-=10000*inf; if(c.hap!==Infinity) c.hap+=5; return ["ซ่อมเนี๊ยบ",[`-$${Math.floor(10000*inf*costMod)}`,"HAP +5"]]; } },
+                    { t: "ซ่อมเอง (ใช้ IQ)", c: 1000*inf*costMod, fn: () => { if(costMod>0) GAME.money-=1000*inf; if((c.iq===Infinity?200:c.iq)>100) return ["ซ่อมสบายๆ",[]]; if(c.hap!==Infinity) c.hap-=10; return ["พังหนักกว่าเดิม",["HAP -10"]]; } },
+                    { t: "เอากะละมังรองไว้", c: 0, fn: () => { if(c.hap!==Infinity) c.hap-=20; return ["อนาถา",["HAP -20"]]; } }
+                ];
+            }
+
+            document.getElementById('ev-title').innerText = title; document.getElementById('ev-desc').innerText = desc; document.getElementById('ev-icon').innerText = icon;
+            let btnContainer = document.getElementById('ev-choices'); btnContainer.innerHTML = '';
+            
+            choices.forEach(ch => {
+                let costStr = ch.c > 0 ? `<span class="text-red-400">[-$${Math.floor(ch.c).toLocaleString()}]</span>` : "";
+                let btn = document.createElement('button');
+                btn.className = `w-full py-3 bg-[#1e293b] hover:bg-[#334155] border border-slate-700 rounded-lg text-left px-5 font-bold transition flex justify-between items-center text-slate-200 shadow ${ch.disable?'opacity-50 cursor-not-allowed':''}`;
+                btn.innerHTML = `<span>${ch.t}</span> ${costStr}`;
+                btn.disabled = ch.disable;
+                btn.onclick = () => {
+                    if(GAME.money < ch.c && ch.c > 0 && !ch.peek) { alert("เงินไม่พอ!"); return; }
+                    let [resText, changes] = ch.fn();
+                    if(ch.peek) return;
+                    document.getElementById('modal-event').classList.add('hidden');
+                    showResultModal(title, resText, changes); 
+                };
+                btnContainer.appendChild(btn);
+            });
+            document.getElementById('modal-event').classList.remove('hidden');
+        }
+
+        function triggerCourt(c, crime, maxJail) {
+            GAME.isSystemPaused = true;
+            if(c.specialRole === "RULER" || c.specialRole === "SHADOW_MONARCH" || c.isClone || c.isShadow) {
+                showResultModal("กฎหมายไร้ผล", "ตัวตนระดับสูงศาลยกฟ้องทันที!", []); return;
+            }
+            let inf = GAME.inflation/100;
+            document.getElementById('ev-char').innerText = c.name; document.getElementById('ev-funds').innerText = `$${Math.floor(GAME.money).toLocaleString()}`;
+            document.getElementById('ev-icon').innerText = "⚖️"; document.getElementById('ev-title').innerText = "ขึ้นศาล!"; document.getElementById('ev-desc').innerText = `ข้อหา ${crime}! จ้างทนายด่วน`;
+            
+            let choices = [ { t: "ทนายรัฐบาล (ชนะ 10%)", c: 0, win: 0.1 }, { t: "ทนายทั่วไป", c: 50000*inf, win: 0.5 }, { t: "ทนายมือทอง", c: 500000*inf, win: 0.8 } ];
+            let btnContainer = document.getElementById('ev-choices'); btnContainer.innerHTML = '';
+            choices.forEach(ch => {
+                let btn = document.createElement('button');
+                btn.className = "w-full py-3 bg-[#1e293b] hover:bg-[#334155] border border-slate-700 rounded-lg flex justify-between items-center text-slate-200 px-5 font-bold shadow";
+                btn.innerHTML = `<span>${ch.t}</span> <span class="text-red-400">${ch.c>0?`[-$${Math.floor(ch.c).toLocaleString()}]`:''}</span>`;
+                btn.onclick = () => {
+                    if(GAME.money < ch.c) { alert("เงินไม่พอ!"); return; }
+                    GAME.money -= ch.c; document.getElementById('modal-event').classList.add('hidden');
+                    if(Math.random() < ch.win) { showResultModal("ไร้ความผิด", "ชนะคดี!", []); }
+                    else { c.isJail = maxJail===Infinity?-1:maxJail; if(maxJail===Infinity) killChar(c,"ประหาร",""); showResultModal("แพ้คดี!", "ศาลตัดสินลงโทษ!", [maxJail===Infinity?"ตาย":`คุก ${maxJail}ด.`]); }
+                };
+                btnContainer.appendChild(btn);
+            });
+            document.getElementById('modal-event').classList.remove('hidden');
+        }
+
+        function marry(c, suitor, cost) {
+            if(GAME.money < cost && cost > 0) return ["เงินไม่พอแต่งงาน!", []];
+            if(cost > 0) GAME.money -= cost;
+            suitor.id = generateId(); suitor.status = "MARRIED"; suitor.spouseId = c.id; c.status = "MARRIED"; c.spouseId = suitor.id; 
+            if(c.hap !== Infinity) c.hap = 100;
+            setCharIcon(suitor); CHARACTERS[suitor.id] = suitor;
+            return [`แต่งงานกับ ${suitor.name} สำเร็จ!`, [`คู่สมรสใหม่: ${suitor.name}`]];
+        }
+
+        function attemptBaby(c, cost, chance, isAdopt=false) {
+            if(GAME.money < cost && cost > 0) return ["เงินไม่พอ!", []];
+            if(cost > 0) GAME.money -= cost;
+            if(Math.random() < chance) {
+                let numKids = 1; let r = Math.random(); if(r < 0.01) numKids = 5; else if(r < 0.1) numKids = 2;
+                GAME.pendingBabies = [];
+                for(let i=0; i<numKids; i++) {
+                    let kid = createBaseCharacter(Math.random()>0.5?"M":"F"); kid.age = 0; kid.parentId = c.id; GAME.pendingBabies.push(kid);
+                }
+                if(c.hap !== Infinity) c.hap += 20; 
+                openBabyModal(); return ["", []]; // Bypass result modal for baby naming
+            }
+            if(c.hap !== Infinity) c.hap -= 10; return ["ไม่สำเร็จ...", ["HAP -10"]];
+        }
+
+        function openBabyModal() {
+            if(GAME.pendingBabies.length === 0) { showResultModal("ยินดีด้วย!", "รับสมาชิกใหม่ครบแล้ว!", []); return; }
+            let b = GAME.pendingBabies[0];
+            document.getElementById('baby-desc').innerText = `คุณได้ลูกเพศ ${b.gender==="M"?"ชาย 👦":"หญิง 👧"} โปรดตั้งชื่อ`;
+            document.getElementById('input-baby-name').value = b.name;
+            document.getElementById('modal-baby').classList.remove('hidden');
+        }
+        function randomBabyName() { document.getElementById('input-baby-name').value = randomName(GAME.pendingBabies[0].gender); }
+        function confirmBabyName() {
+            let b = GAME.pendingBabies.shift(); b.name = document.getElementById('input-baby-name').value.trim() || b.name;
+            setCharIcon(b); CHARACTERS[b.id] = b; document.getElementById('modal-baby').classList.add('hidden'); openBabyModal();
+        }
+
+        function killChar(c, cause, desc) {
+            c.isDead = true; if(c.hp !== Infinity) c.hp = 0; if(c.hap !== Infinity) c.hap = 0; c.job = "UNEMPLOYED"; 
+            logHistory(c, `เสียชีวิต: ${cause}`); setCharIcon(c);
+            if(c.spouseId && CHARACTERS[c.spouseId]) CHARACTERS[c.spouseId].status = "WIDOWED";
+            if(c.specialRole === "REINCARNATE_K" || c.specialRole === "REINCARNATE_D") {
+                let re = createBaseCharacter("M"); re.age = 1; re.parentId = c.parentId;
+                if(c.specialRole === "REINCARNATE_K") setupChar(re, "ภานุเดช", "M", 500, 99, 100, 99, "BABY", null);
+                else setupChar(re, "กฤษดา", "M", 400, 99, 100, 99, "BABY", "REINCARNATE_K");
+                setCharIcon(re); CHARACTERS[re.id] = re;
+            }
+        }
+
+        function showResultModal(title, desc, changes) {
+            if(!title && changes.length === 0) return; // Skip if empty (handled by baby modal)
+            GAME.isSystemPaused = true; 
+            document.getElementById('res-title').innerHTML = `📝 ${title}`; document.getElementById('res-desc').innerText = desc;
+            let cBox = document.getElementById('res-changes');
+            if(changes && changes.length > 0) { cBox.innerHTML = changes.map(ch => ch ? `<div>• ${ch}</div>` : '').join(''); cBox.classList.remove('hidden'); } 
+            else cBox.classList.add('hidden');
+            document.getElementById('modal-result').classList.remove('hidden');
+        }
+        function closeResultModal() { document.getElementById('modal-result').classList.add('hidden'); GAME.isSystemPaused = false; }
+
+        function showCharStatus(id, extChar = null, hideAction = false) {
+            let c = extChar || CHARACTERS[id]; if(!c) return; GAME._inspectTarget = c;
+            
+            let iconBox = document.getElementById('stat-icon-container');
+            if(c.name === "ซอง จินอู") iconBox.innerHTML = `<img src="image_ecea7b.jpg" class="img-sjw" onerror="this.src='https://placehold.co/100x100/1e293b/fff?text=SJW'">`;
+            else iconBox.innerHTML = `<span>${c.icon}</span>`;
+            
+            document.getElementById('stat-name').innerText = c.name; document.getElementById('stat-prefix').innerText = getPrefix(c);
+            
+            ['hp','hap','iq','ch'].forEach(st => {
+                let val = c[st]; let w = val; if(val === Infinity) { val = "∞"; w = 100; } else if(val > 100) w = 100;
+                document.getElementById(`stat-${st}-txt`).innerText = val; document.getElementById(`stat-${st}-bar`).style.width = `${w}%`;
+            });
+            
+            let tagsHtml = `<span class="bg-blue-900 text-blue-200 px-2.5 py-1 rounded text-xs font-bold">${c.age===Infinity?'อมตะ':c.age+'ปี'}</span>
+                <span class="bg-pink-900 text-pink-200 px-2.5 py-1 rounded text-xs font-bold">${c.gender==="M"?"ชาย":c.gender==="F"?"หญิง":"ไร้เพศ"}</span>
+                <span class="bg-purple-900 text-purple-200 px-2.5 py-1 rounded text-xs font-bold">${c.status==="SINGLE"?"โสด":c.status==="MARRIED"?"สมรส":"หม้าย"}</span>
+                <span class="bg-green-900 text-green-200 px-2.5 py-1 rounded text-xs font-bold">${JOBS[c.job]?.name||"ว่างงาน"}</span>`;
+            document.getElementById('stat-tags').innerHTML = tagsHtml;
+            document.getElementById('stat-history').innerHTML = (c.history && c.history.length > 0) ? c.history.map(h => `<div>${h}</div>`).join('') : "ยังไม่มีประวัติ";
+            
+            let sm = Object.values(CHARACTERS).find(char => char.specialRole === "SHADOW_MONARCH" && !char.isDead);
+            let kBtn = document.getElementById('btn-kill');
+            if(sm && !c.isDead && !extChar && !hideAction && c.id !== sm.id) kBtn.classList.remove('hidden'); else kBtn.classList.add('hidden');
+            
+            GAME._wasSystemPausedBeforeStatus = GAME.isSystemPaused; GAME.isSystemPaused = true;
+            document.getElementById('modal-status').classList.remove('hidden');
+        }
+        function closeStatus() { document.getElementById('modal-status').classList.add('hidden'); if(!GAME._wasSystemPausedBeforeStatus) GAME.isSystemPaused = false; }
+        function assassinateTarget() { if(GAME._inspectTarget) { killChar(GAME._inspectTarget, "คำสั่งเงา", ""); closeStatus(); showResultModal("สำเร็จ", "เป้าหมายถูกสังหาร", ["ตาย"]); } }
+
+        function spawnClone() {
+            let ruler = Object.values(CHARACTERS).find(c => c.specialRole === "RULER" && !c.isDead); if(!ruler) return;
+            let clones = Object.values(CHARACTERS).filter(c => c.isClone && !c.isDead);
+            if(clones.length >= 9) { alert("สร้างร่างแยกครบ 9 ตนแล้ว!"); return; }
+            let cD = CLONE_TYPES[clones.length];
+            let cl = { id: generateId(), name: cD.name, gender: "NONE", age: Infinity, maxAge: Infinity, hp: Infinity, hap: cD.hap, iq: cD.iq, ch: cD.ch, job: "UNEMPLOYED", status: "SINGLE", isDead: false, isClone: true, parentId: ruler.id, history: [], exp: 0 };
+            setCharIcon(cl); CHARACTERS[cl.id] = cl; GAME.isSystemPaused = true; showResultModal("พลังจักรวาล", `สร้างร่างแยก ${cl.name} สำเร็จ!`, []);
+        }
+
+        function openAriseModal() {
+            let dl = Object.values(CHARACTERS).filter(c => c.isDead && !c.isShadow);
+            let con = document.getElementById('dead-list'); con.innerHTML = '';
+            let bNew = document.createElement('button'); bNew.className = "w-full text-left p-3 bg-slate-800 hover:bg-purple-900 rounded font-bold text-white mb-2 ring-2 ring-purple-500"; bNew.innerText = "🌌 สร้างจากความว่างเปล่า";
+            bNew.onclick = () => { GAME._pendingShadow = "NEW"; con.querySelectorAll('button').forEach(b=>b.classList.remove('ring-2')); bNew.classList.add('ring-2'); }; con.appendChild(bNew); GAME._pendingShadow = "NEW";
+            dl.forEach(d => {
+                let btn = document.createElement('button'); btn.className = "w-full text-left p-3 bg-slate-800 hover:bg-purple-900 rounded text-slate-300 font-bold mb-2"; btn.innerText = `💀 ${d.name}`;
+                btn.onclick = () => { GAME._pendingShadow = d; con.querySelectorAll('button').forEach(b=>b.classList.remove('ring-2')); btn.classList.add('ring-2','ring-purple-500'); }; con.appendChild(btn);
+            });
+            document.getElementById('modal-shadow').classList.remove('hidden'); GAME.isSystemPaused = true;
+        }
+        function closeShadowModal() { document.getElementById('modal-shadow').classList.add('hidden'); GAME.isSystemPaused = false; }
+        function confirmShadow() {
+            let sm = Object.values(CHARACTERS).find(c => c.specialRole === "SHADOW_MONARCH" && !c.isDead);
+            let n = document.getElementById('input-shadow-name').value.trim() || "ทหารเงา"; let t = GAME._pendingShadow;
+            if(t === "NEW" || !t) {
+                let sc = { id: generateId(), name: n, gender: "NONE", age: Infinity, maxAge: Infinity, hp: Infinity, hap: 100, iq: 100, ch: 0, job: "UNEMPLOYED", status: "SINGLE", isDead: false, isShadow: true, history: [], parentId: sm.id, exp: 0 };
+                setCharIcon(sc); CHARACTERS[sc.id] = sc;
+            } else { t.isDead = false; t.isShadow = true; t.hp = Infinity; t.name = n; t.age = Infinity; t.maxAge = Infinity; t.job = "UNEMPLOYED"; t.status = "SINGLE"; setCharIcon(t); }
+            document.getElementById('modal-shadow').classList.add('hidden'); showResultModal("ARISE!", `เรียก ${n} ออกมาสำเร็จ!`, []);
+        }
+
+        function openBusinessModal() {
+            let list = document.getElementById('business-list'); list.innerHTML = '';
+            BUSINESS_DB.forEach(b => {
+                let infC = b.cost * (GAME.inflation/100);
+                let btn = document.createElement('button'); btn.className = "w-full p-4 bg-slate-800 hover:bg-slate-700 rounded-xl flex justify-between items-center shadow";
+                btn.innerHTML = `<div class="text-left"><p class="font-black text-white">${b.name}</p><p class="text-xs text-green-400">+$${b.income.toLocaleString()}/s</p></div><div class="text-red-400 font-bold bg-slate-900 px-3 py-1 rounded">-$${Math.floor(infC).toLocaleString()}</div>`;
+                btn.onclick = () => { if(GAME.money >= infC) { GAME.money -= infC; GAME.businesses.push({ name: b.name, income: b.income }); document.getElementById('modal-business').classList.add('hidden'); showResultModal("สำเร็จ", `ซื้อ ${b.name} แล้ว!`, []); } else alert("เงินไม่พอ!"); };
+                list.appendChild(btn);
+            });
+            document.getElementById('modal-business').classList.remove('hidden'); GAME.isSystemPaused = true;
+        }
+        function closeBusinessModal() { document.getElementById('modal-business').classList.add('hidden'); GAME.isSystemPaused = false; }
+
+        function updateDashboard() {
+            let chars = Object.values(CHARACTERS); let bC = document.getElementById('btn-clone'), bA = document.getElementById('btn-arise');
+            if(bC) { chars.some(c=>c.specialRole==="RULER" && !c.isDead) ? bC.classList.remove('hidden') : bC.classList.add('hidden'); }
+            if(bA) { chars.some(c=>c.specialRole==="SHADOW_MONARCH" && !c.isDead) ? bA.classList.remove('hidden') : bA.classList.add('hidden'); }
+        }
+
+        function buildNodeUI(c) {
+            let iT = calculateCharIncome(c);
+            let iC = iT > 0 ? 'bg-inc-pos' : (iT < 0 ? 'bg-inc-neg' : 'bg-inc-neu');
+            let iS = iT > 0 ? `+$${Math.floor(iT).toLocaleString()}/s` : (iT < 0 ? `-$${Math.abs(Math.floor(iT)).toLocaleString()}/s` : `+$0/s`);
+            
+            let icHtml = c.name === "ซอง จินอู" ? `<img src="image_ecea7b.jpg" class="img-sjw" onerror="this.src='https://placehold.co/100x100/1e293b/fff?text=SJW'">` : `<span class="${c.isDead?'opacity-50':''}">${c.icon}</span>`;
+            
+            let rC = "normal-ring";
+            if(c.specialRole==="SHADOW_MONARCH" || c.isShadow) rC = "shadow-ring";
+            else if(c.specialRole==="RULER" || c.isClone) rC = "god-ring";
+
+            // ป้องกันมนุษย์ธรรมดาโชว์คำว่า "อมตะ" เด็ดขาด
+            let isImmortal = (c.specialRole === "RULER" || c.specialRole === "SHADOW_MONARCH" || c.isClone || c.isShadow);
+            let ageText = isImmortal ? "อมตะ" : `${c.age} ปี`;
+
+            let div = document.createElement('div'); 
+            div.className = `node-card ${c.isDead?'dead-node':''}`;
+            div.onclick = () => showCharStatus(c.id);
+            div.innerHTML = `<div class="avatar-ring ${rC}">${icHtml}<div class="income-badge ${iC}">${iS}</div></div><div class="name-box">${c.name}</div><div class="age-box">${ageText}</div>`;
+            return div;
+        }
+
+        function renderFamilyTree() {
+            let rNode = document.getElementById('tree-root'); rNode.innerHTML = '';
+            let chars = Object.values(CHARACTERS); if(chars.length === 0) return;
+            let founder = chars.find(c => c.isFounder) || chars[0];
+
+            function buildNodeTree(mainC) {
+                let g = document.createElement('div'); g.className = "tree-node-group";
+                let pb = document.createElement('div'); pb.className = "tree-partners";
+                pb.appendChild(buildNodeUI(mainC));
+                
+                let spouses = chars.filter(c => c.spouseId === mainC.id || mainC.spouseId === c.id);
+                let uSpouses = [...new Set(spouses)];
+                uSpouses.forEach(s => { if(s.id !== mainC.id) pb.appendChild(buildNodeUI(s)); });
+                g.appendChild(pb);
+
+                let pIds = [mainC.id, ...uSpouses.map(s => s.id)];
+                let kids = chars.filter(c => pIds.includes(c.parentId));
+                let uKids = []; kids.forEach(c => { if(!uKids.find(x => x.id === c.id)) uKids.push(c); });
+
+                if(uKids.length > 0) {
+                    let cCon = document.createElement('div'); cCon.className = "children-container " + (uKids.length > 1 ? "has-multiple-children" : "");
+                    cCon.style.setProperty('--child-count', uKids.length);
+                    uKids.forEach(k => {
+                        let cw = document.createElement('div'); cw.className = "child-wrapper"; cw.appendChild(buildNodeTree(k)); cCon.appendChild(cw);
+                    });
+                    g.appendChild(cCon);
+                }
+                return g;
+            }
+            let fl = document.createElement('div'); fl.className = "tree-level"; fl.appendChild(buildNodeTree(founder)); rNode.appendChild(fl);
+            updateDashboard();
+        }
+
+        document.getElementById('login-screen').classList.remove('hidden');
+    </script>
+
+    <!-- Firebase Auth Module (ระบบล็อกอินของจริง) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // ตรวจสอบ config (ใช้ของระบบ หรือแจ้งเตือนให้ผู้เล่นไปใส่เองถ้ารันผ่านไฟล์เครื่องตัวเอง)
+        let firebaseConfig = null;
+        if (typeof __firebase_config !== 'undefined') {
+            firebaseConfig = JSON.parse(__firebase_config);
+        } else {
+            // สำรองกรณีรันจากไฟล์ Local เครื่องตัวเอง
+            firebaseConfig = { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID" };
+        }
+
+        let auth = null;
+        try {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+        } catch(e) { console.warn("Firebase Init Error:", e); }
+
+        window.realLogin = async function(providerName) {
+            if (!auth || firebaseConfig.apiKey === "YOUR_API_KEY") {
+                alert("⚠️ ระบบล็อกอินจริงต้องการ Firebase Config!\nและต้องรันผ่านเว็บเซิร์ฟเวอร์เท่านั้น (ตอนนี้ทำงานในโหมดจำลองไปก่อน)");
+                window.mockLogin(providerName);
+                return;
+            }
+
+            try {
+                let result;
+                if (providerName === 'Google') {
+                    result = await signInWithPopup(auth, new GoogleAuthProvider());
+                } else if (providerName === 'Facebook') {
+                    result = await signInWithPopup(auth, new FacebookAuthProvider());
+                } else {
+                    result = await signInAnonymously(auth);
+                }
+                
+                const user = result.user;
+                const dName = user.displayName || (providerName + " User");
+                
+                // ใช้ตรรกะเดิมในการพาเข้าเกม แต่ใช้ชื่อจริงจากบัญชี
+                GAME.user = { uid: user.uid, name: dName };
+                document.getElementById('login-screen').classList.add('hidden'); 
+                document.getElementById('start-screen').classList.remove('hidden');
+                document.getElementById('user-greeting').innerText = `ยินดีต้อนรับ, ${dName}`;
+                
+                const saved = localStorage.getItem('familyLifeV5Save');
+                if(saved) {
+                    try {
+                        const infRev = (k, v) => v === "INFINITY" ? Infinity : v;
+                        const data = JSON.parse(saved, infRev);
+                        document.getElementById('save-slot').classList.remove('hidden');
+                        document.getElementById('save-info').innerText = `ตระกูล: ${data.famName} | เงิน: $${Math.floor(data.money).toLocaleString()}`;
+                    } catch(e) {}
+                }
+            } catch (error) {
+                console.error(error);
+                alert("ล็อกอินล้มเหลว: " + error.message);
+            }
+        };
+    </script>
+</body>
+</html>
